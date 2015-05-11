@@ -1,17 +1,16 @@
 
-## Panda
-===
+Panda
+====
+
 **Perspective** : a little perspective is warranted here, a seed could grow into a tree.
 
-### Why the project's name is panda ?
-===
-
+Why the project's name is panda ?
+---
 **Answer** : I'm crazy about technology, I hope I can find the answer in the unknown world.
 
+HOWTO
+---
 
-### HOWTO
-===
-									
 - get source code
 
 		$ mkdir panda-git
