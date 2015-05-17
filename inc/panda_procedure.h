@@ -35,7 +35,6 @@ extern "C" {
 #define DEFAULT_REQUEST_DATA_SIZE 8192
 #define DEFAULT_REPLY_DATA_SIZE 8192
 
-
     typedef enum panda_procedure_type_e
     {
         REQUEST = 0x1,
@@ -43,37 +42,30 @@ extern "C" {
     }
     panda_procedure_type_t;
 
+    typedef struct panda_procedure_group_data_s panda_procedure_group_data_t;
 
     typedef struct panda_procedure_s
     {
         uint32_t type;
-        int32_t (*request) (void *req_data, size_t count, void *pgdata);
-        int32_t (*reply) (void *rep_data, size_t *count, void *pgdata);
+        int32_t (*request) (void *req_data, size_t count, panda_procedure_group_data_t *pgdata);
+        int32_t (*reply) (void *rep_data, size_t *count, panda_procedure_group_data_t *pgdata);
     } panda_procedure_t;
 
+    int32_t panda_procedure_register(panda_procedure_t *pro_vec, size_t pro_cnt, panda_procedure_group_data_t *pgdata);
 
-    int32_t panda_procedure_register(panda_procedure_t *pro_vec, size_t pro_cnt, void *pgdata);
+    int32_t panda_procedure_commit(panda_procedure_group_data_t *pgdata);
 
+    int32_t panda_procedure_group_init(void (*init)(panda_procedure_group_data_t *data), void (*exit)(panda_procedure_group_data_t *data));
 
-    int32_t panda_procedure_commit(void *pgdata);
+    void *panda_procedure_group_data(panda_procedure_group_data_t *pgdata);
 
+    int32_t panda_procedure_group_data_init(panda_procedure_group_data_t *pgdata, void *private_data);
 
-    int32_t panda_procedure_group_init(void (*init)(void *data), void (*exit)(void *data));
+    int32_t panda_procedure_group_set_data_size(uint32_t req_size, uint32_t rep_size);
 
+    int32_t panda_procedure_group_create(panda_procedure_group_data_t *pgdata);
 
-    void *panda_procedure_group_data(void *pgdata);
-
-
-    int32_t panda_procedure_group_data_init(void *pgdata, void *private_data);
-
-
-    int32_t panda_procedure_group_create(void *pgdata);
-
-
-    int32_t panda_procedure_group_destroy(void *pgdata);
-
-
-    int32_t panda_procedure_set_data_size(uint32_t req_size, uint32_t rep_size);
+    int32_t panda_procedure_group_destroy(panda_procedure_group_data_t *pgdata);
 
     void panda_procedure_loop();
 

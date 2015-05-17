@@ -1,0 +1,5 @@
+add_compile_options(-DFREEBSD -fPIC -Wall)
+if ($(HAVE_KQUEUE))
+	message ("add have kqueue")
+    add_compile_options(-DMD_HAVE_KQUEUE)
+endif ($(HAVE_KQUEUE))

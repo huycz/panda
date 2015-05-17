@@ -1,0 +1,1 @@
+add_library(panda_module_test MODULE panda_module_test.cpp)

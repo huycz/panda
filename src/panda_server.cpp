@@ -30,8 +30,9 @@
 #include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef HAVE_PRCTL
 #include <sys/prctl.h>
-
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,19 +144,18 @@ extern "C" {
 
     void init_module(char *module_path)
     {
-        void *module_handle = NULL;
-        void (*panda_procedure_init)(void *data) = NULL;
-        void (*panda_procedure_exit)(void *data) = NULL;
         panda_log_info("module : %s\n", module_path);
 
-        module_handle = dlopen(module_path, RTLD_GLOBAL | RTLD_LAZY);
+        void *module_handle = dlopen(module_path, RTLD_GLOBAL | RTLD_LAZY);
         if (module_handle == NULL)
             panda_log_fatal("open %s fail\n", module_path);
 
-        panda_procedure_init = (void (*)(void*))dlsym(module_handle, (char*)"panda_module_init");
+        void (*panda_procedure_init)(panda_procedure_group_data_t*) 
+                = (void (*)(panda_procedure_group_data_t*))dlsym(module_handle, (char*)"panda_module_init");
         if (panda_procedure_init == NULL)
             panda_log_fatal("panda_module_init is NULL\n");
-        panda_procedure_exit = (void (*)(void*))dlsym(module_handle, (char*)"panda_module_exit");
+        void (*panda_procedure_exit)(panda_procedure_group_data_t*)
+                = (void (*)(panda_procedure_group_data_t*))dlsym(module_handle, (char*)"panda_module_exit");
         if (panda_procedure_exit == NULL)
             panda_log_fatal("panda_module_exit is NULL\n");
 
@@ -247,23 +247,18 @@ extern "C" {
 
     void init_module_name(char *name, size_t n)
     {
-        char *last = module_path;
-        char *last_but_one = NULL;
-
-        //find the last '/'
-        while ((last = strstr(last, (char*)"/")) != NULL) {
-            last_but_one = ++last;
-        }
-
-        strncpy(name, last_but_one, n);
-        if ((name = strstr(name, (char*)".")) != NULL)
-            *name = '\0';
+        char *last_slash = strrchr(module_path, '/');
+        char *last_dot = strrchr(module_path, '.');
+        assert(last_slash < last_dot);
+        size_t name_size = last_dot - (last_slash+1);
+        strncpy(name, last_slash+1, n > name_size?name_size:n);
+        name[name_size] = '\0';
     }
 
 
     void init_daemon()
     {
-        char name[16] = "";	//because PR_SET_NAME : The  name can be up to 16 bytes long
+        char name[32] = "";	//because PR_SET_NAME : The  name can be up to 16 bytes long
         char log_name[sizeof(node_config.log_path)] = "";
         char log_path[sizeof(node_config.log_path)] = "";
 
@@ -271,20 +266,16 @@ extern "C" {
             if (daemon(1, 1) < 0)	//not change working directory and stdio
                 panda_log_fatal("daemon fail");
 
-        if (prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0) == -1)
-            panda_log_fatal("prctl fail");
-
-        memset(name, 0x00, sizeof(name));
         init_module_name(name, sizeof(name));
-        name[13] = '\0';
         strcat(name, "_m");
         panda_log_info("init monitor name : %s\n", name);
 
-        memcpy(log_path, monitor_config.log_path, sizeof(node_config.log_path));
-        strncat(log_path, "/", sizeof(log_path));
-        strncat(log_path, name, sizeof(log_path));
-        strncat(log_path, "_%u", sizeof(log_path));
-        snprintf(log_name, sizeof(log_path), log_path, getpid());
+#ifdef HAVE_PRCTL
+        if (prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0) == -1)
+            panda_log_fatal("prctl fail");
+#endif
+
+        snprintf(log_name, sizeof(log_path), "%s/%s_%u", monitor_config.log_path, name, getpid());
         panda_log_info("init monitor log name : %s\n", log_name);
         if (panda_log_init(log_name) < 0)
             panda_log_fatal("panda_log_init fail\n");
@@ -314,21 +305,18 @@ extern "C" {
         strcat(name, "_n");
         panda_log_info("init working node name : %s\n", name);
 
-        memcpy(log_path, node_config.log_path, sizeof(node_config.log_path));
-        strncat(log_path, "/", sizeof(log_path));
-        strncat(log_path, name, sizeof(log_path));
-        strncat(log_path, "_%u", sizeof(log_path));
-        snprintf(log_name, sizeof(log_path), log_path, getpid());
+        snprintf(log_name, sizeof(log_path), "%s/%s_%u", monitor_config.log_path, name, getpid());
         if (panda_log_init(log_name) < 0)
             panda_log_fatal("panda_log_init fail\n");
 
-
+#ifdef HAVE_PRCTL
         if (prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0) == -1)
             panda_log_fatal("prctl fail");
+#endif
 
         panda_log_info("working node %u start\n", getpid());
 
-        panda_procedure_set_data_size(node_config.request_data_size, node_config.reply_data_size);
+        panda_procedure_group_set_data_size(node_config.request_data_size, node_config.reply_data_size);
 
         //TODO main processing loop
         panda_procedure_loop();

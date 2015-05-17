@@ -117,7 +117,7 @@ extern "C" {
     }
 
 
-    int test_request(void *req_data, size_t count, void *pgdata)
+    int test_request(void *req_data, size_t count, panda_procedure_group_data_t *pgdata)
     {
         char time_buf[64] = "";
         panda_log_info("req_data : %s\n", (char*)req_data);
@@ -130,7 +130,7 @@ extern "C" {
     }
 
 
-    int test_reply(void *rep_data, size_t *count, void *pgdata)
+    int test_reply(void *rep_data, size_t *count, panda_procedure_group_data_t *pgdata)
     {
         panda_log_trace();
         strcpy((char*)rep_data, (char *)panda_procedure_group_data(pgdata));
@@ -141,7 +141,7 @@ extern "C" {
     }
 
 
-    void panda_module_init(void *pgdata)
+    void panda_module_init(panda_procedure_group_data_t *pgdata)
     {
         panda_procedure_t pro;
         pro.type = REQUEST | REPLY;
@@ -157,7 +157,7 @@ extern "C" {
     }
 
 
-    void panda_module_exit(void *pgdata)
+    void panda_module_exit(panda_procedure_group_data_t *pgdata)
     {
         panda_log_info("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__);
         free(panda_procedure_group_data(pgdata));
