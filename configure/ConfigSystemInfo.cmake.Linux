@@ -1,4 +1,4 @@
 set(OS_NAME Linux)
 set(CMAKE_SYSTEM_NAM $(OS_NAME))
 set(CMAKE_C_COMPILER gcc)
-set(CMAKE_CXX_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
